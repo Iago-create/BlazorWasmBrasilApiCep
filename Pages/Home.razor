@@ -1,0 +1,73 @@
+﻿@page "/"
+@using BlazorWasmBrasilApiCep.models
+@inject HttpClient Http
+
+<PageTitle>Consulta CEP - Brasil API</PageTitle>
+
+<h3>Consulta de CEP com Blazor WebAssembly</h3>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label for="cepInput" class="form-label">Digite o CEP:</label>
+        <div class="input-group">
+            <input id="cepInput" type="text" class="form-control" @bind="cepDigitado" placeholder="Ex: 89010025" maxlength="8" />
+            <button class="btn btn-primary" @onclick="ConsultarCep">Consultar</button>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(mensagemErro))
+{
+    <div class="alert alert-danger" role="alert">
+        @mensagemErro
+    </div>
+}
+
+@if (cepResultado != null)
+{
+    <div class="card mt-3 col-md-6">
+        <div class="card-header bg-success text-white">
+            Resultado da Consulta
+        </div>
+        <div class="card-body">
+            <p><strong>CEP:</strong> @cepResultado.cep</p>
+            <p><strong>Logradouro:</strong> @cepResultado.street</p>
+            <p><strong>Bairro:</strong> @cepResultado.neighborhood</p>
+            <p><strong>Cidade:</strong> @cepResultado.city (@cepResultado.state)</p>
+            <p><strong>Código IBGE Cidade:</strong> @cepResultado.ibge?.city</p>
+            <p><strong>Serviço:</strong> @cepResultado.service</p>
+        </div>
+    </div>
+}
+
+@code {
+    private string cepDigitado = string.Empty;
+    private Cep? cepResultado;
+    private string mensagemErro = string.Empty;
+
+    private async Task ConsultarCep()
+    {
+        mensagemErro = string.Empty;
+        cepResultado = null;
+
+        if (string.IsNullOrWhiteSpace(cepDigitado) || cepDigitado.Length != 8)
+        {
+            mensagemErro = "Por favor, digite um CEP válido com 8 dígitos.";
+            return;
+        }
+
+        try
+        {
+            var url = $"https://brasilapi.com.br/api/cep/v1/{cepDigitado.Trim()}";
+            cepResultado = await Http.GetFromJsonAsync<Cep>(url);
+        }
+        catch (HttpRequestException)
+        {
+            mensagemErro = "CEP não encontrado ou erro na comunicação com a API.";
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = $"Ocorreu um erro inesperado: {ex.Message}";
+        }
+    }
+}
